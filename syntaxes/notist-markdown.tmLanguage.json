@@ -1,0 +1,7 @@
+{
+  "name": "Notist Markdown",
+  "scopeName": "text.html.markdown.notist",
+  "patterns": [
+    { "include": "text.html.markdown" }
+  ]
+}

@@ -18,11 +18,13 @@
   "contributes": {
     "languages": [
       { "id": "notist", "aliases": ["Notist", "notist"], "extensions": [".not"], "configuration": "./language-configuration.json" },
-      { "id": "notist-code", "aliases": ["Notist Code", "notist-code"], "extensions": [".notc"], "configuration": "./language-configuration.json" }
+      { "id": "notist-code", "aliases": ["Notist Code", "notist-code"], "extensions": [".notc"], "configuration": "./language-configuration.json" },
+      { "id": "notist-markdown", "aliases": ["Notist Markdown", "notist-markdown"], "extensions": [".nmd", ".notmd"] }
     ],
     "grammars": [
       { "language": "notist", "scopeName": "text.notist", "path": "./syntaxes/notist.tmLanguage.json" },
-      { "language": "notist-code", "scopeName": "source.notist.code", "path": "./syntaxes/notist-code.tmLanguage.json" }
+      { "language": "notist-code", "scopeName": "source.notist.code", "path": "./syntaxes/notist-code.tmLanguage.json" },
+      { "language": "notist-markdown", "scopeName": "text.html.markdown.notist", "path": "./syntaxes/notist-markdown.tmLanguage.json" }
     ],
     "commands": [{ "command": "notist.restartLanguageServer", "title": "Notist: Restart Language Server" }],
     "configuration": {

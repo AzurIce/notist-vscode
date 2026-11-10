@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
 
-const languages = new Set(['notist', 'notist-code']);
+const languages = new Set(['notist', 'notist-code', 'notist-markdown']);
 const clients = new Map<string, { client: LanguageClient; watchers: vscode.FileSystemWatcher[] }>();
 let pending = Promise.resolve();
 let disposed = false;
@@ -31,7 +31,7 @@ async function start(document: vscode.TextDocument): Promise<void> {
   const args = config.get<string[]>('server.args', ['lsp']);
   const server: ServerOptions = { command, args, options: { cwd: root.fsPath } };
   const watchers = [
-    vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, '**/*.{not,notc}')),
+    vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, '**/*.{not,notc,nmd,notmd,md,markdown}')),
     vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, '**/Notist.toml')),
   ];
   const options: LanguageClientOptions = {

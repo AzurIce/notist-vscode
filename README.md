@@ -38,8 +38,10 @@ code --install-extension notist-vscode-0.1.0.vsix
 
 高亮测试使用真实 TextMate / Oniguruma 引擎，覆盖 Markup、Code、嵌套注释和模式切换。高亮是词法近似，不替代 Notist 解析器；服务端目前未提供语义高亮。
 
-## Dev Build
+## Release
 
-在 GitHub 的 **Actions → Dev Build → Run workflow** 手动触发。成功后会更新固定 tag `dev-build` 对应的 prerelease，标题为 `Dev Build yyyy-mm-dd`（UTC）。每次运行覆盖标题、说明、tag 指向和所有附件，只保留本次构建的 `notist-vscode-dev.vsix`，不创建多个开发 release。
+在 GitHub 的 **Actions → Release → Run workflow** 手动触发。默认启用 `publish_dev`：成功后更新固定 tag `dev-build` 对应的 prerelease，标题为 `Dev Build yyyy-mm-dd`（UTC），覆盖标题、说明、tag 指向和附件，只保留本次构建的 `notist-vscode-dev.vsix`。关闭 `publish_dev` 则仅构建，不修改任何 release 或 tag。
 
-该 VSIX 标记为扩展预发布版本，仍需单独安装 Notist CLI。工作流使用仓库自带的 `GITHUB_TOKEN`，无需额外配置发布密钥。
+手动构建的 VSIX 标记为扩展预发布版本。推送与 `package.json` 版本完全对应的 `v*` tag（例如 `v0.1.0`）会发布正式 GitHub Release，不标记为扩展预发布版本。两种构建均上传 Actions artifact，保留 7 天；普通分支 push 不触发 Release。
+
+所有 VSIX 均需单独安装 Notist CLI。工作流使用仓库自带的 `GITHUB_TOKEN`，仅发布 job 获得写权限，无需额外配置发布密钥。

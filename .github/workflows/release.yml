@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_dev:
+        description: "发布/更新 Dev Build（固定 tag: dev-build，替换旧资产）"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Manual builds share a group so different branches cannot race to update dev-build.
+concurrency:
+  group: release-${{ github.event_name == 'push' && github.ref_name || 'development-build' }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.plan.outputs.channel }}
+      publish: ${{ steps.plan.outputs.publish }}
+      version: ${{ steps.plan.outputs.version }}
+      date: ${{ steps.plan.outputs.date }}
+    steps:
+      - id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUBLISH_DEV: ${{ inputs.publish_dev }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == push && "$GITHUB_REF_TYPE" == tag ]]; then
+            channel=stable
+            publish=true
+            version="${GITHUB_REF_NAME#v}"
+          elif [[ "$PUBLISH_DEV" == true ]]; then
+            channel=dev
+            publish=true
+            version=dev
+          else
+            channel=none
+            publish=false
+            version="dev-${GITHUB_SHA::7}"
+          fi
+          {
+            echo "channel=$channel"
+            echo "publish=$publish"
+            echo "version=$version"
+            echo "date=$(date -u +'%Y-%m-%d %H:%M UTC')"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - name: Install dependencies
+        run: nix develop -c npm ci --include=dev
+      - name: Check workflows and test
+        run: |
+          nix develop -c actionlint
+          nix develop -c npm test
+      - name: Validate stable version
+        if: needs.plan.outputs.channel == 'stable'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          nix develop -c node -e '
+            const version = require("./package.json").version;
+            if (process.env.RELEASE_TAG !== "v" + version) {
+              throw new Error("Release tag must match package.json version: v" + version);
+            }
+          '
+      - name: Package extension
+        env:
+          CHANNEL: ${{ needs.plan.outputs.channel }}
+          BUILD_VERSION: ${{ needs.plan.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--out "notist-vscode-$BUILD_VERSION.vsix")
+          if [[ "$CHANNEL" != stable ]]; then
+            args+=(--pre-release)
+          fi
+          nix develop -c npm run package -- "${args[@]}"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notist-vscode-${{ needs.plan.outputs.version }}
+          path: "*.vsix"
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: publish release
+    needs: [plan, build]
+    if: needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: notist-vscode-${{ needs.plan.outputs.version }}
+          path: dist
+
+      - name: Update development build tag
+        if: needs.plan.outputs.channel == 'dev'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repo = context.repo;
+            const ref = 'tags/dev-build';
+            try {
+              await github.rest.git.getRef({ ...repo, ref });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.git.createRef({
+                ...repo, ref: `refs/${ref}`, sha: context.sha,
+              });
+              return;
+            }
+            await github.rest.git.updateRef({
+              ...repo, ref, sha: context.sha, force: true,
+            });
+
+      - name: Get UTC release date
+        if: needs.plan.outputs.channel == 'dev'
+        id: release_date
+        run: echo "date=$(date -u +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish dev prerelease
+        if: needs.plan.outputs.channel == 'dev'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-build
+          target_commitish: ${{ github.sha }}
+          name: Dev Build ${{ steps.release_date.outputs.date }}
+          body: |
+            `${{ github.ref_name }}` 的开发构建，**非稳定版本**。
+
+            下载 `notist-vscode-dev.vsix`，在 VS Code 中执行 **Extensions: Install from VSIX…** 安装。
+            需单独安装 Notist CLI，并确保 `notist` 在 PATH 中，或配置 `notist.server.path`。
+
+            ### 构建信息
+
+            - 提交：${{ github.sha }}
+            - 时间：${{ needs.plan.outputs.date }}
+            - 构建：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            此 prerelease 及附件会在下次开发构建时覆盖；稳定版请使用 `v*` tag 的 Release。
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: dist/*.vsix
+          fail_on_unmatched_files: true
+
+      - name: Remove stale development assets
+        if: needs.plan.outputs.channel == 'dev'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const names = new Set(fs.readdirSync('dist'));
+            const repo = context.repo;
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              ...repo, tag: 'dev-build',
+            });
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...repo, release_id: release.id, per_page: 100,
+            });
+            for (const asset of assets) {
+              if (!names.has(asset.name)) {
+                await github.rest.repos.deleteReleaseAsset({ ...repo, asset_id: asset.id });
+              }
+            }
+
+      - name: Publish stable release
+        if: needs.plan.outputs.channel == 'stable'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body: |
+            下载 `.vsix`，在 VS Code 中执行 **Extensions: Install from VSIX…** 安装。
+            需单独安装 Notist CLI，并确保 `notist` 在 PATH 中，或配置 `notist.server.path`。
+          generate_release_notes: true
+          prerelease: false
+          files: dist/*.vsix
+          fail_on_unmatched_files: true

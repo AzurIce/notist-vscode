@@ -10,6 +10,7 @@
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
   "main": "./dist/extension.js",
+  "activationEvents": ["onLanguage:notist", "onLanguage:notist-code", "onLanguage:notist-markdown", "onCommand:notist.restartLanguageServer"],
   "extensionKind": ["workspace"],
   "capabilities": {
     "untrustedWorkspaces": { "supported": "limited", "description": "Syntax highlighting is available; the language server only runs in trusted workspaces." },
@@ -24,7 +25,8 @@
     "grammars": [
       { "language": "notist", "scopeName": "text.notist", "path": "./syntaxes/notist.tmLanguage.json" },
       { "language": "notist-code", "scopeName": "source.notist.code", "path": "./syntaxes/notist-code.tmLanguage.json" },
-      { "language": "notist-markdown", "scopeName": "text.html.markdown.notist", "path": "./syntaxes/notist-markdown.tmLanguage.json" }
+      { "language": "notist-markdown", "scopeName": "text.html.markdown.notist", "path": "./syntaxes/notist-markdown.tmLanguage.json" },
+      { "scopeName": "notist.markdown.injection", "path": "./syntaxes/notist-markdown-injection.tmLanguage.json", "injectTo": ["text.html.markdown.notist"] }
     ],
     "commands": [{ "command": "notist.restartLanguageServer", "title": "Notist: Restart Language Server" }],
     "configuration": {
@@ -42,6 +44,7 @@
     "watch": "node esbuild.mjs --watch",
     "check": "tsc --noEmit",
     "test": "node --test test/*.test.mjs",
+    "test:editor": "npm run build && node test/run-editor.mjs",
     "package": "vsce package --allow-missing-repository"
   },
   "dependencies": { "vscode-languageclient": "^9.0.1" },

@@ -104,6 +104,10 @@ test('untrusted workspaces do not execute the CLI; granting trust starts it', as
 test('Notist Markdown is registered without taking over ordinary Markdown files', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.ok(!manifest.activationEvents?.includes('onLanguage:markdown'));
+  for (const language of ['notist', 'notist-code', 'notist-markdown']) {
+    assert.ok(manifest.activationEvents.includes(`onLanguage:${language}`));
+  }
+  assert.ok(manifest.activationEvents.includes('onCommand:notist.restartLanguageServer'));
   assert.deepEqual(manifest.contributes.languages.find(language => language.id === 'notist-markdown').extensions, ['.nmd', '.notmd']);
   assert.ok(manifest.contributes.languages.every(language => language.id !== 'markdown'));
   assert.ok(manifest.contributes.grammars.every(grammar => grammar.language !== 'markdown'));

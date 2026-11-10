@@ -48,7 +48,9 @@ async function start(document: vscode.TextDocument): Promise<void> {
   const client = new LanguageClient('notist', `Notist (${path.basename(root.fsPath)})`, server, options);
   clients.set(key, { client, watchers });
   try {
+    output.appendLine(`Starting ${command} ${JSON.stringify(args)} in ${root.fsPath}`);
     await client.start();
+    output.appendLine(`Language server ready for ${root.fsPath}`);
   } catch (error) {
     clients.delete(key);
     watchers.forEach(watcher => watcher.dispose());

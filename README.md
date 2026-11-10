@@ -21,7 +21,7 @@
 
 ## 开发与安装
 
-需要 Node.js 22+ 和 npm。
+推荐使用 Nix：`nix develop` 进入包含 Node.js 22、npm、Git、GitHub CLI 和 actionlint 的开发环境。使用 direnv 时先运行 `direnv allow`，即可通过 `.envrc` 自动加载。`flake.lock` 锁定工具链，CI 和开发构建使用同一环境。也可以自行安装 Node.js 22+ 和 npm。
 
 ```sh
 npm ci
@@ -37,3 +37,9 @@ code --install-extension notist-vscode-0.1.0.vsix
 ```
 
 高亮测试使用真实 TextMate / Oniguruma 引擎，覆盖 Markup、Code、嵌套注释和模式切换。高亮是词法近似，不替代 Notist 解析器；服务端目前未提供语义高亮。
+
+## Dev Build
+
+在 GitHub 的 **Actions → Dev Build → Run workflow** 手动触发。成功后会更新固定 tag `dev-build` 对应的 prerelease，标题为 `Dev Build yyyy-mm-dd`（UTC）。每次运行覆盖标题、说明、tag 指向和所有附件，只保留本次构建的 `notist-vscode-dev.vsix`，不创建多个开发 release。
+
+该 VSIX 标记为扩展预发布版本，仍需单独安装 Notist CLI。工作流使用仓库自带的 `GITHUB_TOKEN`，无需额外配置发布密钥。

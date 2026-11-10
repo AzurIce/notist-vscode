@@ -1,0 +1,70 @@
+name: Dev Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-build
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - name: Install dependencies
+        run: nix develop -c npm ci --include=dev
+      - name: Test
+        run: nix develop -c npm test
+      - name: Package development extension
+        run: nix develop -c npm run package -- --pre-release --out notist-vscode-dev.vsix
+      - name: Replace development prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=dev-build
+          title="Dev Build $(date -u +%F)"
+          notes="$RUNNER_TEMP/dev-build-notes.md"
+          cat > "$notes" <<EOF
+          Development build of the Notist VS Code extension.
+
+          - Commit: $COMMIT
+          - Built at: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          - Workflow: $RUN_URL
+
+          Download \`notist-vscode-dev.vsix\` and use **Extensions: Install from VSIX…** in VS Code.
+          Requires a separate Notist CLI installation. This prerelease and its assets are replaced on each run.
+          EOF
+
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" > /dev/null 2>&1; then
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$tag" \
+              -f sha="$COMMIT" -F force=true
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" \
+              -f ref="refs/tags/$tag" -f sha="$COMMIT"
+          fi
+
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --title "$title" --notes-file "$notes" --prerelease --latest=false
+            # Remove all existing assets, including any with older filenames.
+            assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+            while IFS= read -r asset; do
+              [[ -n "$asset" ]] || continue
+              gh release delete-asset "$tag" "$asset" --yes
+            done <<< "$assets"
+          else
+            gh release create "$tag" --verify-tag --title "$title" \
+              --notes-file "$notes" --prerelease --latest=false
+          fi
+          gh release upload "$tag" notist-vscode-dev.vsix --clobber

@@ -1,0 +1,56 @@
+{
+  "name": "notist-vscode",
+  "displayName": "Notist",
+  "description": "Notist language support: syntax highlighting and language server integration.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/AzurIce/notist-vscode.git" },
+  "homepage": "https://github.com/AzurIce/notist-vscode#readme",
+  "bugs": { "url": "https://github.com/AzurIce/notist-vscode/issues" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "main": "./dist/extension.js",
+  "extensionKind": ["workspace"],
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": "limited", "description": "Syntax highlighting is available; the language server only runs in trusted workspaces." },
+    "virtualWorkspaces": { "supported": false }
+  },
+  "contributes": {
+    "languages": [
+      { "id": "notist", "aliases": ["Notist", "notist"], "extensions": [".not"], "configuration": "./language-configuration.json" },
+      { "id": "notist-code", "aliases": ["Notist Code", "notist-code"], "extensions": [".notc"], "configuration": "./language-configuration.json" }
+    ],
+    "grammars": [
+      { "language": "notist", "scopeName": "text.notist", "path": "./syntaxes/notist.tmLanguage.json" },
+      { "language": "notist-code", "scopeName": "source.notist.code", "path": "./syntaxes/notist-code.tmLanguage.json" }
+    ],
+    "commands": [{ "command": "notist.restartLanguageServer", "title": "Notist: Restart Language Server" }],
+    "configuration": {
+      "title": "Notist",
+      "properties": {
+        "notist.server.path": { "type": "string", "default": "notist", "scope": "machine-overridable", "description": "Notist CLI executable (not a shell command). Use an absolute path if it is not on PATH." },
+        "notist.server.args": { "type": "array", "items": { "type": "string" }, "default": ["lsp"], "scope": "machine-overridable", "description": "Arguments passed to the Notist CLI, e.g. [\"lsp\", \"--config\", \"/path/to/Notist.toml\"]." },
+        "notist.trace.server": { "type": "string", "enum": ["off", "messages", "verbose"], "default": "off", "description": "Trace language server communication in the Notist output channel." }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run check && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "dependencies": { "vscode-languageclient": "^9.0.1" },
+  "overrides": { "@vscode/vsce": { "minimatch": "^11.0.5" } },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  }
+}

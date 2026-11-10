@@ -1,0 +1,41 @@
+{
+  "name": "Notist",
+  "scopeName": "text.notist",
+  "patterns": [
+    { "include": "source.notist.code#comments" },
+    { "name": "constant.character.escape.notist", "match": "\\\\[=~*_`\\[\\]()|#@$!+\\\\-]" },
+    { "include": "#raw-block" },
+    { "name": "markup.raw.inline.notist", "begin": "(`+)", "end": "(?<!`)\\1(?!`)|(?=$)" },
+    { "name": "markup.math.notist", "begin": "\\$(?=\\S)", "end": "(?<=\\S)\\$|(?=^\\s*$)" },
+    { "name": "markup.math.block.notist", "begin": "\\$(?=\\s)", "end": "(?<=\\s)\\$" },
+    { "include": "#annotation" },
+    { "include": "#call" },
+    { "name": "markup.heading.notist", "begin": "^([ \\t]*)(=+)(?=[ \\t]|$)", "beginCaptures": { "2": { "name": "punctuation.definition.heading.notist" } }, "end": "$", "patterns": [{ "include": "text.notist" }] },
+    { "name": "punctuation.definition.list.notist", "match": "^[ \\t]*[-+](?=[ \\t])" },
+    { "name": "markup.underline.link.notist", "begin": "\\[\\[", "end": "\\]\\]|(?=$)" },
+    { "name": "meta.link.notist", "begin": "\\[(?=[^\\]\\n]*\\]\\()", "end": "\\)|(?=$)", "patterns": [
+      { "name": "markup.underline.link.notist", "begin": "\\]\\(", "end": "(?=\\))" }
+    ] },
+    { "name": "markup.bold.notist", "begin": "\\*(?=[^*\\s])", "end": "\\*|(?=^\\s*$)", "patterns": [{ "include": "text.notist" }] },
+    { "name": "markup.italic.notist", "begin": "_(?=[^_\\s])", "end": "_|(?=^\\s*$)", "patterns": [{ "include": "text.notist" }] },
+    { "name": "markup.strikethrough.notist", "begin": "~(?=[^~\\s])", "end": "~|(?=^\\s*$)", "patterns": [{ "include": "text.notist" }] },
+    { "include": "#content" }
+  ],
+  "repository": {
+    "raw-block": { "name": "markup.raw.block.notist", "begin": "^[ \\t]*(`{3,})([^`\\r\\n]*)$", "beginCaptures": { "2": { "name": "entity.name.type.language.notist" } }, "end": "^[ \\t]*\\1`*[ \\t]*$" },
+    "annotation": { "name": "meta.annotation.notist", "begin": "(@!?)(\\()", "beginCaptures": { "1": { "name": "punctuation.definition.annotation.notist" } }, "end": "\\)", "patterns": [
+      { "include": "#arguments" }
+    ] },
+    "call": { "name": "meta.function-call.notist", "begin": "(#)([\\p{L}_][\\p{L}\\p{N}_-]*(?:\\.[\\p{L}_][\\p{L}\\p{N}_-]*)*)?", "beginCaptures": { "1": { "name": "punctuation.definition.function.notist" }, "2": { "name": "entity.name.function.notist" } }, "end": "(?=[^<(\\[])|$", "patterns": [
+      { "begin": "<", "end": ">", "patterns": [{ "include": "source.notist.code#literals" }, { "include": "source.notist.code#parentheses" }, { "include": "#type-arguments" }] },
+      { "begin": "\\(", "end": "\\)", "patterns": [{ "include": "#arguments" }] },
+      { "include": "#content" }
+    ] },
+    "type-arguments": { "begin": "<", "end": ">", "patterns": [{ "include": "#type-arguments" }, { "include": "source.notist.code#literals" }] },
+    "arguments": { "patterns": [
+      { "name": "variable.parameter.notist", "match": "[\\p{L}_][\\p{L}\\p{N}_-]*(?=\\s*:)" },
+      { "include": "source.notist.code" }
+    ] },
+    "content": { "name": "meta.content.notist", "begin": "\\[", "end": "\\]", "patterns": [{ "include": "text.notist" }] }
+  }
+}

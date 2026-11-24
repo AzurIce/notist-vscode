@@ -15,9 +15,9 @@ writeFileSync(path.join(workspace, '.vscode/settings.json'), JSON.stringify({
   'notist.server.path': process.env.NOTIST_BIN,
   'notist.trace.server': 'verbose',
 }));
-writeFileSync(path.join(workspace, 'lib.notc'), 'fn badge() -> InlineContent { [Badge] }');
+writeFileSync(path.join(workspace, 'lib.not'), 'fn badge() -> Inline { [Badge] }');
 for (const suffix of ['md', 'nmd', 'notmd']) {
-  writeFileSync(path.join(workspace, `page.${suffix}`), '#import "lib.notc": badge;\n\n#badge()\n\n#unknown()\n');
+  writeFileSync(path.join(workspace, `page.${suffix}`), '#import "./lib.not": badge;\n\n#badge()\n\n#unknown()\n');
 }
 console.log(`Editor test artifacts: ${temp}`);
 const result = spawnSync(process.env.VSCODE_EXECUTABLE, [

@@ -10,7 +10,7 @@
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
   "main": "./dist/extension.js",
-  "activationEvents": ["onLanguage:notist", "onLanguage:notist-code", "onLanguage:notist-markdown", "onCommand:notist.restartLanguageServer"],
+  "activationEvents": ["onLanguage:notist", "onLanguage:notist-markdown", "onCommand:notist.restartLanguageServer"],
   "extensionKind": ["workspace"],
   "capabilities": {
     "untrustedWorkspaces": { "supported": "limited", "description": "Syntax highlighting is available; the language server only runs in trusted workspaces." },
@@ -18,13 +18,11 @@
   },
   "contributes": {
     "languages": [
-      { "id": "notist", "aliases": ["Notist", "notist"], "extensions": [".not"], "configuration": "./language-configuration.json" },
-      { "id": "notist-code", "aliases": ["Notist Code", "notist-code"], "extensions": [".notc"], "configuration": "./language-configuration.json" },
+      { "id": "notist", "aliases": ["Notist", "notist", "not"], "extensions": [".not"], "configuration": "./language-configuration.json" },
       { "id": "notist-markdown", "aliases": ["Notist Markdown", "notist-markdown"], "extensions": [".nmd", ".notmd"] }
     ],
     "grammars": [
-      { "language": "notist", "scopeName": "text.notist", "path": "./syntaxes/notist.tmLanguage.json" },
-      { "language": "notist-code", "scopeName": "source.notist.code", "path": "./syntaxes/notist-code.tmLanguage.json" },
+      { "language": "notist", "scopeName": "source.notist", "path": "./syntaxes/notist.tmLanguage.json" },
       { "language": "notist-markdown", "scopeName": "text.html.markdown.notist", "path": "./syntaxes/notist-markdown.tmLanguage.json" },
       { "scopeName": "notist.markdown.injection", "path": "./syntaxes/notist-markdown-injection.tmLanguage.json", "injectTo": ["text.html.markdown.notist"] }
     ],

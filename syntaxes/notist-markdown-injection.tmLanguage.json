@@ -3,16 +3,41 @@
   "injectionSelector": "L:text.html.markdown.notist -markup.inline.raw -markup.fenced_code -markup.raw -comment -meta.function-call.notist -meta.annotation.notist -meta.import.notist",
   "patterns": [
     { "include": "#import" },
-    { "include": "text.notist#annotation" },
+    { "include": "#annotation" },
+    { "include": "#expr-interp" },
     { "include": "#call" }
   ],
   "repository": {
+    "content-inner": {
+      "patterns": [
+        { "include": "#annotation" },
+        { "include": "#expr-interp" },
+        { "include": "#call" },
+        { "include": "#reference" }
+      ]
+    },
     "import": {
       "name": "meta.import.notist",
       "begin": "(#)(import)\\b",
       "beginCaptures": { "1": { "name": "punctuation.definition.function.notist" }, "2": { "name": "keyword.control.notist" } },
       "end": ";|$",
-      "patterns": [{ "include": "source.notist.code" }]
+      "patterns": [{ "include": "source.notist" }]
+    },
+    "annotation": {
+      "name": "meta.annotation.notist",
+      "begin": "(@!?)(\\()",
+      "beginCaptures": { "1": { "name": "punctuation.definition.annotation.notist" }, "2": { "name": "punctuation.section.parens.begin.notist" } },
+      "end": "\\)",
+      "endCaptures": { "0": { "name": "punctuation.section.parens.end.notist" } },
+      "patterns": [{ "include": "#arguments" }]
+    },
+    "expr-interp": {
+      "name": "meta.interpolation.notist",
+      "begin": "(#)(\\()",
+      "beginCaptures": { "1": { "name": "punctuation.definition.function.notist" }, "2": { "name": "punctuation.section.parens.begin.notist" } },
+      "end": "\\)",
+      "endCaptures": { "0": { "name": "punctuation.section.parens.end.notist" } },
+      "patterns": [{ "include": "source.notist" }]
     },
     "call": {
       "name": "meta.function-call.notist",
@@ -20,9 +45,26 @@
       "beginCaptures": { "1": { "name": "punctuation.definition.function.notist" }, "2": { "name": "entity.name.function.notist" } },
       "end": "(?=[^<(\\[])|$",
       "patterns": [
-        { "begin": "<", "end": ">", "patterns": [{ "include": "text.notist#type-arguments" }, { "include": "source.notist.code#literals" }] },
-        { "begin": "\\(", "end": "\\)", "patterns": [{ "include": "text.notist#arguments" }] },
-        { "begin": "\\[", "end": "\\]", "patterns": [{ "include": "#call" }, { "include": "text.notist#annotation" }, { "include": "text.html.markdown.notist" }] }
+        { "begin": "<", "end": ">", "patterns": [{ "include": "#type-arguments" }, { "include": "source.notist#literals" }] },
+        { "begin": "\\(", "end": "\\)", "patterns": [{ "include": "#arguments" }] },
+        { "begin": "\\[", "end": "\\]", "patterns": [{ "include": "#content-inner" }, { "include": "text.html.markdown.notist" }] }
+      ]
+    },
+    "reference": {
+      "name": "meta.reference.notist",
+      "match": "(#)([\\p{L}_][\\p{L}\\p{N}_-]*(?:\\.[\\p{L}_][\\p{L}\\p{N}_-]*)*)(?![\\p{L}\\p{N}_-])",
+      "captures": { "1": { "name": "punctuation.definition.function.notist" }, "2": { "name": "variable.other.notist" } }
+    },
+    "type-arguments": {
+      "patterns": [
+        { "name": "support.type.notist", "match": "\\b[A-Z][\\p{L}\\p{N}_-]*" },
+        { "name": "punctuation.separator.notist", "match": "," }
+      ]
+    },
+    "arguments": {
+      "patterns": [
+        { "name": "variable.parameter.notist", "match": "([\\p{L}_][\\p{L}\\p{N}_-]*)(?=\\s*:)" },
+        { "include": "source.notist" }
       ]
     }
   }

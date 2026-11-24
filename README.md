@@ -1,10 +1,10 @@
 # Notist for Visual Studio Code
 
-为 `.not`（Markup）、`.notc`（Code）和 `.nmd` / `.notmd`（Notist Markdown）提供 TextMate 语法高亮，并连接 `notist lsp`，使用服务端提供的诊断、悬停、跳转定义和文档符号功能。不包含预览，也不捆绑 Notist CLI。Notist Markdown 复用 VS Code 内置 Markdown 语法，并注入 Notist 调用、导入和注解高亮；普通 Markdown 和代码块不注入。
+为 `.not`（Notist Code 模块）和 `.nmd` / `.notmd`（Notist Markdown，及按需切换的 `.md` / `.markdown`）提供 TextMate 语法高亮，并连接 `notist lsp`，使用服务端提供的诊断、悬停、跳转定义、补全和文档符号功能。不包含预览，也不捆绑 Notist CLI。Notist Markdown 复用 VS Code 内置 Markdown 语法，并注入 Notist 调用、导入、注解与 `#(expr)` 插值高亮；普通 Markdown 和代码块不注入。
 
 ## 使用
 
-先安装启用了 `lsp` feature 的 Notist CLI（默认启用），确保 `notist` 在 VS Code 扩展宿主的 PATH 中。打开 `.not` / `.notc` / `.nmd` / `.notmd` 文件即可启动语言服务器，无需 `Notist.toml`。
+先安装启用了 `lsp` feature 的 Notist CLI（默认启用），确保 `notist` 在 VS Code 扩展宿主的 PATH 中。打开 `.not` / `.nmd` / `.notmd` 文件即可启动语言服务器，无需 `Notist.toml`。
 
 普通 `.md` / `.markdown` 文件保留内置 Markdown 语言关联，不自动连接 Notist LSP。在状态栏语言模式或 **Change Language Mode** 中选择 **Notist Markdown** 后即可连接，无需重命名文件；切回 Markdown 后停止同步该文档。磁盘上的 Markdown 依赖变更仍会通知已运行的服务器。
 

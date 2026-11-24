@@ -31,7 +31,7 @@ exports.run = async () => {
   }, 'Notist function hover');
   assert.ok(hover.length);
   const definitions = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', uri, position);
-  assert.equal(definitions[0].uri.fsPath, path.join(root, 'lib.notc'));
+  assert.equal(definitions[0].uri.fsPath, path.join(root, 'lib.not'));
   await eventually(() => vscode.languages.getDiagnostics(uri).some(diagnostic => diagnostic.source?.startsWith('notist:')), 'Notist diagnostics');
   await vscode.languages.setTextDocumentLanguage(document, 'markdown');
   await eventually(() => !vscode.languages.getDiagnostics(uri).some(diagnostic => diagnostic.source?.startsWith('notist:')), 'switching back clears diagnostics');

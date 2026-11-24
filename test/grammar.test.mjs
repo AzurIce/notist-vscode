@@ -17,13 +17,17 @@ const registry = new textmate.Registry({
     if (scope === 'text.html.markdown' && process.env.VSCODE_MARKDOWN_GRAMMAR) {
       return JSON.parse(await readFile(process.env.VSCODE_MARKDOWN_GRAMMAR, 'utf8'));
     }
-    const name = { 'text.notist': 'notist', 'source.notist.code': 'notist-code', 'text.html.markdown.notist': 'notist-markdown', 'notist.markdown.injection': 'notist-markdown-injection' }[scope];
+    const name = {
+      'source.notist': 'notist',
+      'text.html.markdown.notist': 'notist-markdown',
+      'notist.markdown.injection': 'notist-markdown-injection',
+    }[scope];
     return name ? JSON.parse(await readFile(new URL(`../syntaxes/${name}.tmLanguage.json`, import.meta.url), 'utf8')) : null;
   },
   getInjections: scope => scope === 'text.html.markdown.notist' ? ['notist.markdown.injection'] : [],
 });
 
-async function tokenize(source, scope = 'text.notist') {
+async function tokenize(source, scope = 'source.notist') {
   const grammar = await registry.loadGrammar(scope);
   let state = textmate.INITIAL;
   return source.split('\n').map(line => {
@@ -40,68 +44,54 @@ function hasScope(line, text, scope) {
   assert.ok(token?.scopes.includes(scope), `${text}: expected ${scope}, got ${token?.scopes}`);
 }
 
-test('markup headings, emphasis, links, math, calls and annotations', async () => {
-  const lines = await tokenize('= 标题\n*粗体* _斜体_ ~删除~\n[[page.not|标题]] [链接](https://example.com)\n$x + y$\n@(id: "intro")\n#组件(name: "值", n: 42)[*内容*]');
-  hasScope(lines[0], '标题', 'markup.heading.notist');
-  hasScope(lines[1], '粗体', 'markup.bold.notist');
-  hasScope(lines[1], '斜体', 'markup.italic.notist');
-  hasScope(lines[1], '删除', 'markup.strikethrough.notist');
-  hasScope(lines[2], 'page.not', 'markup.underline.link.notist');
-  hasScope(lines[2], 'https:', 'markup.underline.link.notist');
-  hasScope(lines[3], 'x', 'markup.math.notist');
-  hasScope(lines[4], 'id', 'variable.parameter.notist');
-  hasScope(lines[4], 'intro', 'string.quoted.double.notist');
-  hasScope(lines[5], '组件', 'entity.name.function.notist');
-  hasScope(lines[5], '42', 'constant.numeric.notist');
-  hasScope(lines[5], '内容', 'markup.bold.notist');
-});
-
-test('raw text is opaque, and matching fences restore markup', async () => {
-  const lines = await tokenize('````not\n#not-a-call() *not-bold*\n```\nmore\n````\n= Heading\n`#literal()`');
-  hasScope(lines[1], '#not', 'markup.raw.block.notist');
-  hasScope(lines[3], 'more', 'markup.raw.block.notist');
-  hasScope(lines[5], 'Heading', 'markup.heading.notist');
-  hasScope(lines[6], '#literal', 'markup.raw.inline.notist');
-});
-
-test('nested block comments and URLs', async () => {
-  const lines = await tokenize('/* outer /* inner */\nstill outer */\nhttps://example.com // comment');
-  hasScope(lines[1], 'still', 'comment.block.notist');
-  hasScope(lines[2], 'comment', 'comment.line.double-slash.notist');
-  assert.ok(!lines[2].tokens.find(t => t.startIndex <= 8 && t.endIndex > 8).scopes.some(s => s.startsWith('comment.')));
-});
-
-test('code declarations, paths, strings, generics and embedded markup', async () => {
-  const lines = await tokenize('fn item(source: Path) -> BlockContent {\n let x = p"./data.json";\n let value = r##"raw"##;\n let text = """multi\nline""";\n [#heading<2>[*Hello*]]\n}', 'source.notist.code');
-  hasScope(lines[0], 'fn', 'keyword.control.notist');
-  hasScope(lines[0], 'item', 'entity.name.function.notist');
-  hasScope(lines[0], 'Path', 'support.type.notist');
-  hasScope(lines[1], './data', 'string.quoted.double.path.notist');
+test('notist code declarations, methods, strings, generics, comments and embedded content', async () => {
+  const lines = await tokenize(
+    'import "./math.not" as m;\nfn Block.banner<C: Type>(self, x: C) -> Block where C == Inline {\n let value = r##"raw"##;\n let text = """multi\nline""";\n let nums = (1_000, 2);\n callout("tip")[ #x and #strong[Hello] ]\n}',
+    'source.notist',
+  );
+  hasScope(lines[0], 'import', 'keyword.control.notist');
+  hasScope(lines[0], './math.not', 'string.quoted.double.notist');
+  hasScope(lines[1], 'fn', 'keyword.control.notist');
+  hasScope(lines[1], 'Block', 'support.type.notist');
+  hasScope(lines[1], 'banner', 'entity.name.function.notist');
+  hasScope(lines[1], 'self', 'variable.language.self.notist');
+  hasScope(lines[1], 'where', 'keyword.control.notist');
   hasScope(lines[2], 'raw', 'string.quoted.double.raw.notist');
   hasScope(lines[4], 'line', 'string.quoted.triple.notist');
-  hasScope(lines[5], 'heading', 'entity.name.function.notist');
-  hasScope(lines[5], 'Hello', 'markup.bold.notist');
+  hasScope(lines[5], '1_000', 'constant.numeric.notist');
+  hasScope(lines[6], 'callout', 'entity.name.function.notist');
+  hasScope(lines[6], 'x', 'variable.other.notist');
+  hasScope(lines[6], 'strong', 'entity.name.function.notist');
+});
+
+test('nested block comments and URLs in code', async () => {
+  const lines = await tokenize('/* outer /* inner */\nstill outer */\nlet u = "https://example.com"; // comment', 'source.notist');
+  hasScope(lines[1], 'still', 'comment.block.notist');
+  hasScope(lines[2], 'comment', 'comment.line.double-slash.notist');
+  hasScope(lines[2], 'https:', 'string.quoted.double.notist');
 });
 
 test('unterminated single-line strings do not swallow declarations', async () => {
-  const lines = await tokenize('let x = "oops\nfn next() {}', 'source.notist.code');
+  const lines = await tokenize('let x = "oops\nfn next() -> Int { 1 }', 'source.notist');
   hasScope(lines[1], 'fn', 'keyword.control.notist');
 });
 
 test('hyphenated identifiers do not contain keywords or numeric literals', async () => {
-  const [line] = await tokenize('let if-value = item-42;', 'source.notist.code');
+  const [line] = await tokenize('let if-value = item-42;', 'source.notist');
   const scopes = line.tokens.filter(t => t.startIndex >= 4).flatMap(t => t.scopes);
   assert.ok(!scopes.includes('keyword.control.notist'));
   assert.ok(!scopes.includes('constant.numeric.notist'));
 });
 
-test('Notist Markdown injection highlights calls, imports and annotations', async () => {
-  const lines = await tokenize('#import "lib.notc": badge;\n#pele.diagram(r#"raw"#)\n@(id: "intro")', 'notist.markdown.injection');
+test('Notist Markdown injection highlights calls, imports, annotations and #(expr)', async () => {
+  const lines = await tokenize('#import "./lib.not": badge;\n#pele.diagram(r#"raw"#)\n@!(title: "Doc", tags: ("a", "b"))\n@(id: "intro")\nValue: #(1 + 2)', 'notist.markdown.injection');
   hasScope(lines[0], 'import', 'keyword.control.notist');
-  hasScope(lines[0], 'lib.notc', 'string.quoted.double.notist');
+  hasScope(lines[0], './lib.not', 'string.quoted.double.notist');
   hasScope(lines[1], 'pele.diagram', 'entity.name.function.notist');
   hasScope(lines[1], 'raw', 'string.quoted.double.raw.notist');
-  hasScope(lines[2], 'id', 'variable.parameter.notist');
+  hasScope(lines[2], 'title', 'variable.parameter.notist');
+  hasScope(lines[3], 'id', 'variable.parameter.notist');
+  hasScope(lines[4], '1', 'constant.numeric.notist');
 });
 
 test('Notist injection works inside real Markdown and leaves headings and code opaque', { skip: !process.env.VSCODE_MARKDOWN_GRAMMAR }, async () => {

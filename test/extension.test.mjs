@@ -73,7 +73,7 @@ test('one client per workspace folder with correct command, cwd and selectors', 
   const h = harness();
   h.settings.path = '/tools/notist';
   h.settings.args = ['lsp', '--config', '/config/Notist.toml'];
-  h.workspace.textDocuments = [h.document('/project/a/a.not'), h.document('/project/a/b.notc', 'notist-code'), h.document('/project/b/a.not')];
+  h.workspace.textDocuments = [h.document('/project/a/a.not'), h.document('/project/a/b.nmd', 'notist-markdown'), h.document('/project/b/a.not')];
   await h.activate();
   assert.equal(h.instances.length, 2);
   const client = h.instances[0];
@@ -81,7 +81,7 @@ test('one client per workspace folder with correct command, cwd and selectors', 
   assert.equal(client.server.args[1], '--config');
   assert.equal(client.server.options.cwd, '/project/a');
   assert.equal(client.options.documentSelector[0].pattern, '/project/a/**/*');
-  assert.equal(client.options.documentSelector[1].language, 'notist-code');
+  assert.equal(client.options.documentSelector[1].language, 'notist-markdown');
   await h.deactivate();
   assert.ok(h.instances.every(client => client.disposed));
   assert.ok(h.watchers.every(watcher => watcher.disposed));
@@ -104,7 +104,7 @@ test('untrusted workspaces do not execute the CLI; granting trust starts it', as
 test('Notist Markdown is registered without taking over ordinary Markdown files', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.ok(!manifest.activationEvents?.includes('onLanguage:markdown'));
-  for (const language of ['notist', 'notist-code', 'notist-markdown']) {
+  for (const language of ['notist', 'notist-markdown']) {
     assert.ok(manifest.activationEvents.includes(`onLanguage:${language}`));
   }
   assert.ok(manifest.activationEvents.includes('onCommand:notist.restartLanguageServer'));
@@ -122,7 +122,7 @@ test('Notist Markdown-only workspaces start the server and synchronize documents
   const selector = h.instances[0].options.documentSelector.find(selector => selector.language === 'notist-markdown');
   assert.equal(selector.scheme, 'file');
   assert.equal(selector.pattern, '/project/a/**/*');
-  assert.equal(h.watchers[0].pattern.pattern, '**/*.{not,notc,nmd,notmd,md,markdown}');
+  assert.equal(h.watchers[0].pattern.pattern, '**/*.{not,nmd,notmd,md,markdown}');
   assert.ok(h.watchers.every(watcher => h.instances[0].options.synchronize.fileEvents.includes(watcher)));
   assert.ok(h.instances[0].options.documentSelector.every(selector => selector.language !== 'markdown'));
   await h.deactivate();
@@ -155,7 +155,7 @@ test('deactivation prevents queued events from starting a process', async () => 
 
 test('standalone files use their parent directory and other languages are ignored', async () => {
   const h = harness();
-  h.workspace.textDocuments = [h.document('/loose/a.not'), h.document('/loose/b.notc', 'notist-code'), h.document('/loose/a.ts', 'typescript')];
+  h.workspace.textDocuments = [h.document('/loose/a.not'), h.document('/loose/b.nmd', 'notist-markdown'), h.document('/loose/a.ts', 'typescript')];
   await h.activate();
   assert.equal(h.instances.length, 1);
   assert.equal(h.instances[0].server.options.cwd, '/loose');
